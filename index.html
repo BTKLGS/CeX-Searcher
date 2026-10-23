@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#111827">
+<title>CeX Finder — prototype</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1020;--panel:#151d30;--panel2:#1d2940;--text:#f4f7fb;--muted:#aab6ca;--accent:#f5c542;--line:#2c3a53}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#111a2d 0,#0b1020 280px);color:var(--text);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:760px;margin:auto;padding:22px 15px 44px}
+header{padding:10px 2px 20px}
+.eyebrow{color:var(--accent);font-size:.78rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+h1{font-size:2rem;line-height:1.08;margin:8px 0}
+p{margin:8px 0;color:var(--muted)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;margin:14px 0}
+label{display:block;font-size:.88rem;color:var(--muted);margin:0 0 6px}
+input,select,button{font:inherit;width:100%;border-radius:11px;border:1px solid #3b4a65;padding:12px;background:#0d1526;color:var(--text);min-height:46px}
+button{background:var(--accent);color:#191919;border:0;font-weight:800;cursor:pointer}
+button.secondary{background:var(--panel2);color:var(--text);border:1px solid #3b4a65}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.checkrow{display:flex;align-items:center;gap:10px;margin-top:14px;color:var(--text)}
+.checkrow input{width:20px;min-height:20px;accent-color:var(--accent)}
+.note{font-size:.84rem;border-left:3px solid var(--accent);padding:9px 11px;background:#20283a;border-radius:0 9px 9px 0}
+.result{border:1px solid var(--line);border-radius:14px;padding:13px;margin-top:10px;background:#10182a}
+.result h3{font-size:1rem;margin:0 0 5px}
+.price{font-size:1.2rem;font-weight:850;color:var(--accent)}
+.tag{display:inline-block;background:#25324a;border-radius:20px;padding:4px 8px;font-size:.75rem;color:#d9e4f7;margin:5px 4px 0 0}
+a{color:#f8d76c;font-weight:700}
+.small{font-size:.82rem}
+@media(max-width:420px){.grid{grid-template-columns:1fr}.actions{grid-template-columns:1fr}h1{font-size:1.8rem}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div class="eyebrow">Independent project · v0.1</div>
+  <h1>CeX Finder</h1>
+  <p>A phone-friendly starting point for finding CeX UK products, comparing prices and opening the official listing.</p>
+</header>
+<section class="panel">
+  <label for="query">What are you looking for?</label>
+  <input id="query" placeholder="e.g. RTX 3060, gaming PC, SSD" autocomplete="off">
+  <div class="grid" style="margin-top:12px">
+    <div><label for="minPrice">Minimum price (£)</label><input id="minPrice" type="number" min="0" placeholder="0"></div>
+    <div><label for="maxPrice">Maximum price (£)</label><input id="maxPrice" type="number" min="0" placeholder="Any"></div>
+  </div>
+  <div style="margin-top:12px">
+    <label for="sort">Sort prototype results</label>
+    <select id="sort"><option value="asc">Cheapest first</option><option value="desc">Most expensive first</option><option value="name">Name A–Z</option></select>
+  </div>
+  <label class="checkrow"><input type="checkbox" id="onlineOnly" checked> Prefer items marked in stock online</label>
+  <div class="actions">
+    <button id="searchLive">Search on CeX UK ↗</button>
+    <button class="secondary" id="showDemo">Try demo results</button>
+  </div>
+</section>
+<div class="note"><strong>Important:</strong> this is an early prototype. “Search on CeX UK” opens CeX's own search in a new tab. The demo listings below are fictional test data—not real products, prices or stock.</div>
+<section class="panel" aria-live="polite">
+  <h2 style="font-size:1.1rem;margin:0">Results <span id="count" class="small" style="color:var(--muted)"></span></h2>
+  <p id="status">Try a live CeX search, or tap “Try demo results” to test the filters and sorting.</p>
+  <div id="results"></div>
+</section>
+<p class="small">Next build step: connect a reliable live product-data source, then verify online-order eligibility separately from store stock. Never treat store stock as proof that delivery is available.</p>
+</main>
+<script>
+const demo = [
+ {name:"Example RTX 3060 graphics card",price:180,online:true,grade:"Example grade B"},
+ {name:"Example 1TB SSD",price:42,online:false,grade:"Example grade C"},
+ {name:"Example gaming PC — Ryzen 5",price:350,online:true,grade:"Example grade B"},
+ {name:"Example wireless controller",price:38,online:true,grade:"Example grade A"},
+ {name:"Example 500GB SSD",price:25,online:false,grade:"Example grade B"}
+];
+let demoVisible=false;
+const $=id=>document.getElementById(id);
+function render(){
+ if(!demoVisible)return;
+ const q=$("query").value.trim().toLowerCase();
+ const min=$("minPrice").value===""?0:Number($("minPrice").value);
+ const max=$("maxPrice").value===""?Infinity:Number($("maxPrice").value);
+ let rows=demo.filter(x=>x.name.toLowerCase().includes(q)&&x.price>=min&&x.price<=max&&(!$("onlineOnly").checked||x.online));
+ const sort=$("sort").value;
+ rows.sort(sort==="asc"?(a,b)=>a.price-b.price:sort==="desc"?(a,b)=>b.price-a.price:(a,b)=>a.name.localeCompare(b.name));
+ $("count").textContent=`(${rows.length})`;
+ $("status").textContent="Demo data only — these are fictional examples.";
+ $("results").innerHTML=rows.length?rows.map(x=>`<article class="result"><h3>${x.name}</h3><div class="price">£${x.price.toFixed(2)}</div><span class="tag">${x.grade}</span><span class="tag">${x.online?"Demo: online stock":"Demo: store-only stock"}</span></article>`).join(""):'<p>No demo results match those filters. Try changing your search or price range.</p>';
+}
+$("searchLive").addEventListener("click",()=>{
+ const q=$("query").value.trim();
+ if(!q){$("status").textContent="Enter a product name first.";return;}
+ const url="https://uk.webuy.com/search?st="+encodeURIComponent(q);
+ window.open(url,"_blank","noopener");
+});
+$("showDemo").addEventListener("click",()=>{demoVisible=true;render()});
+["query","minPrice","maxPrice","sort","onlineOnly"].forEach(id=>$(id).addEventListener("input",render));
+</script>
+</body>
+</html>

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#111827">
-<title>CeX Finder — prototype</title>
+<title>CeX Finder</title>
 <style>
 :root{color-scheme:dark;--bg:#0b1020;--panel:#151d30;--panel2:#1d2940;--text:#f4f7fb;--muted:#aab6ca;--accent:#f5c542;--line:#2c3a53}
 *{box-sizing:border-box}
@@ -36,9 +36,9 @@ a{color:#f8d76c;font-weight:700}
 <body>
 <main>
 <header>
-  <div class="eyebrow">Independent project · v0.1</div>
+  <div class="eyebrow">Independent project · live-search test</div>
   <h1>CeX Finder</h1>
-  <p>A phone-friendly starting point for finding CeX UK products, comparing prices and opening the official listing.</p>
+  <p>Search real CeX UK catalogue results, compare prices and open the official product listing.</p>
 </header>
 <section class="panel">
   <label for="query">What are you looking for?</label>
@@ -48,54 +48,64 @@ a{color:#f8d76c;font-weight:700}
     <div><label for="maxPrice">Maximum price (£)</label><input id="maxPrice" type="number" min="0" placeholder="Any"></div>
   </div>
   <div style="margin-top:12px">
-    <label for="sort">Sort prototype results</label>
+    <label for="sort">Sort results</label>
     <select id="sort"><option value="asc">Cheapest first</option><option value="desc">Most expensive first</option><option value="name">Name A–Z</option></select>
   </div>
   <label class="checkrow"><input type="checkbox" id="onlineOnly" checked> Prefer items marked in stock online</label>
   <label class="checkrow"><input type="checkbox" id="deliveryOnly"> I need home delivery available</label>
   <div class="actions">
-    <button id="searchLive">Search on CeX UK ↗</button>
-    <button class="secondary" id="showDemo">Try demo results</button>
+    <button id="searchLive">Search live products</button>
+    <button class="secondary" id="showDemo">Open CeX website ↗</button>
   </div>
 </section>
-<div class="note"><strong>Important:</strong> this is an early prototype. “Search on CeX UK” opens CeX's own search. The demo listings below are fictional test data—not real products, prices or stock. Delivery availability must be confirmed on the actual CeX listing.</div>
+<div class="note"><strong>Live-search test:</strong> results come from an unofficial CeX catalogue endpoint. If CeX blocks browser requests, use “Open CeX website” instead. Online stock is not a guarantee of home delivery; confirm delivery on the product page.</div>
 <section class="panel" aria-live="polite">
   <h2 style="font-size:1.1rem;margin:0">Results <span id="count" class="small" style="color:var(--muted)"></span></h2>
-  <p id="status">Try a live CeX search, or tap “Try demo results” to test the filters and sorting.</p>
+  <p id="status">Enter a product name and tap “Search live products”.</p>
   <div id="results"></div>
 </section>
-<p class="small">Delivery filter note: the checkbox records your preference and gives you the right next step, but it does not yet automatically remove non-deliverable products from live results. A reliable live data source that exposes delivery eligibility is still needed for that.</p>
+<p class="small">Delivery note: the catalogue search can report online stock, but it does not reliably prove home-delivery eligibility. The delivery checkbox only shows products marked as in stock online; check “Delivery Available” on the CeX product page before ordering.</p>
 </main>
 <script>
-const demo = [
- {name:"Example RTX 3060 graphics card",price:180,online:true,grade:"Example grade B"},
- {name:"Example 1TB SSD",price:42,online:false,grade:"Example grade C"},
- {name:"Example gaming PC — Ryzen 5",price:350,online:true,grade:"Example grade B"},
- {name:"Example wireless controller",price:38,online:true,grade:"Example grade A"},
- {name:"Example 500GB SSD",price:25,online:false,grade:"Example grade B"}
-];
-let demoVisible=false;
 const $=id=>document.getElementById(id);
+let liveRows=[];
 function render(){
- if(!demoVisible)return;
  const q=$("query").value.trim().toLowerCase();
  const min=$("minPrice").value===""?0:Number($("minPrice").value);
  const max=$("maxPrice").value===""?Infinity:Number($("maxPrice").value);
- let rows=demo.filter(x=>x.name.toLowerCase().includes(q)&&x.price>=min&&x.price<=max&&(!$("onlineOnly").checked||x.online));
+ let rows=liveRows.filter(x=>x.name.toLowerCase().includes(q)&&x.price>=min&&x.price<=max&&(!$("onlineOnly").checked||x.online)&&(!$("deliveryOnly").checked||x.online));
  const sort=$("sort").value;
  rows.sort(sort==="asc"?(a,b)=>a.price-b.price:sort==="desc"?(a,b)=>b.price-a.price:(a,b)=>a.name.localeCompare(b.name));
- $("count").textContent=`(${rows.length})`;
- $("status").textContent=$("deliveryOnly").checked?"Demo data only — delivery availability cannot be verified for fictional examples.":"Demo data only — these are fictional examples.";
- $("results").innerHTML=rows.length?rows.map(x=>`<article class="result"><h3>${x.name}</h3><div class="price">£${x.price.toFixed(2)}</div><span class="tag">${x.grade}</span><span class="tag">${x.online?"Demo: online stock":"Demo: store-only stock"}</span></article>`).join(""):'<p>No demo results match those filters. Try changing your search or price range.</p>';
+ $("count").textContent=liveRows.length?("(" + rows.length + " shown)"):"";
+ $("results").innerHTML=rows.length?rows.map(x=>'<article class="result"><h3><a href="'+x.url+'" target="_blank" rel="noopener">'+escapeHtml(x.name)+'</a></h3><div class="price">£'+x.price.toFixed(2)+'</div><span class="tag">'+escapeHtml(x.category||"CeX product")+'</span><span class="tag">'+(x.online?"In stock online":"Online stock unavailable/unknown")+'</span></article>').join(""):(liveRows.length?'<p>No live results match those filters. Try changing your search or price range.</p>':"");
+ if(liveRows.length) $("status").textContent=$("deliveryOnly").checked?"Showing live products marked in stock online. This does not guarantee home delivery; confirm on each CeX product page.":"Live catalogue results. Confirm current price and delivery on CeX before ordering.";
 }
-$("searchLive").addEventListener("click",()=>{
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));}
+async function searchLive(){
  const q=$("query").value.trim();
  if(!q){$("status").textContent="Enter a product name first.";return;}
- const url="https://uk.webuy.com/search?stext="+encodeURIComponent(q);
- window.open(url,"_blank","noopener");
-});
-$("showDemo").addEventListener("click",()=>{demoVisible=true;render()});
-["query","minPrice","maxPrice","sort","onlineOnly","deliveryOnly"].forEach(id=>$(id).addEventListener("input",render));
+ $("status").textContent="Searching the live CeX catalogue…";
+ $("results").innerHTML="";
+ liveRows=[];
+ try{
+  const endpoint="https://wss2.cex.uk.webuy.io/v3/boxes?q="+encodeURIComponent(q)+"&firstRecord=1&count=50&sortBy=relevance&sortOrder=desc";
+  const response=await fetch(endpoint,{headers:{"Accept":"application/json"}});
+  if(!response.ok) throw new Error("CeX catalogue returned HTTP "+response.status);
+  const data=await response.json();
+  const boxes=data?.response?.data?.boxes;
+  if(!Array.isArray(boxes)) throw new Error("Unexpected catalogue response");
+  liveRows=boxes.map(x=>({name:x.boxName||"Unnamed CeX product",price:Number(x.sellPrice),online:Number(x.outOfStock)!==1&&Number(x.outOfEcomStock)!==1&&Number(x.ecomQuantityOnHand||0)>0,category:x.categoryFriendlyName||x.categoryName||"",url:"https://uk.webuy.com/product-detail?id="+encodeURIComponent(x.boxId||"")})).filter(x=>Number.isFinite(x.price)&&x.price>=0);
+  render();
+  if(!liveRows.length)$("status").textContent="The catalogue returned no usable products for that search.";
+ }catch(err){
+  $("status").textContent="Live search could not connect from this page (CeX may block browser requests). You can still open the official CeX search below.";
+  $("results").innerHTML='<p><a href="https://uk.webuy.com/search?stext='+encodeURIComponent(q)+'" target="_blank" rel="noopener">Open CeX search for “'+escapeHtml(q)+'” ↗</a></p><p class="small">Technical detail: '+escapeHtml(err.message||"request failed")+'</p>';
+ }
+}
+$("searchLive").addEventListener("click",searchLive);
+$("openCex").addEventListener("click",()=>{const q=$("query").value.trim();window.open("https://uk.webuy.com/search?stext="+encodeURIComponent(q),"_blank","noopener");});
+["minPrice","maxPrice","sort","onlineOnly","deliveryOnly"].forEach(id=>$(id).addEventListener("input",render));
+$("query").addEventListener("keydown",e=>{if(e.key==="Enter")searchLive();});
 </script>
 </body>
 </html>

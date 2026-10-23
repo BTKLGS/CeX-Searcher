@@ -90,7 +90,7 @@ function render(){
 $("searchLive").addEventListener("click",()=>{
  const q=$("query").value.trim();
  if(!q){$("status").textContent="Enter a product name first.";return;}
- const url = "https://www.google.com/search?q=" + encodeURIComponent("CeX UK " + q);
+ const url = "https://www.google.com/search?q=" + encodeURIComponent("site:uk.webuy.com " + q);
 window.location.href = url;
 });
 $("showDemo").addEventListener("click",()=>{demoVisible=true;render()});

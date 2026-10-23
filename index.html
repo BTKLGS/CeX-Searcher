@@ -90,7 +90,7 @@ function render(){
 $("searchLive").addEventListener("click",()=>{
  const q=$("query").value.trim();
  if(!q){$("status").textContent="Enter a product name first.";return;}
- const url="https://uk.webuy.com/search?st="+encodeURIComponent(q);
+ const url="https://uk.webuy.com/search?stext="+encodeURIComponent(q);
  window.open(url,"_blank","noopener");
 });
 $("showDemo").addEventListener("click",()=>{demoVisible=true;render()});

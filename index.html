@@ -52,18 +52,19 @@ a{color:#f8d76c;font-weight:700}
     <select id="sort"><option value="asc">Cheapest first</option><option value="desc">Most expensive first</option><option value="name">Name A–Z</option></select>
   </div>
   <label class="checkrow"><input type="checkbox" id="onlineOnly" checked> Prefer items marked in stock online</label>
+  <label class="checkrow"><input type="checkbox" id="deliveryOnly"> I need home delivery available</label>
   <div class="actions">
     <button id="searchLive">Search on CeX UK ↗</button>
     <button class="secondary" id="showDemo">Try demo results</button>
   </div>
 </section>
-<div class="note"><strong>Important:</strong> this is an early prototype. “Search on CeX UK” opens CeX's own search. The demo listings below are fictional test data—not real products, prices or stock.</div>
+<div class="note"><strong>Important:</strong> this is an early prototype. “Search on CeX UK” opens CeX's own search. The demo listings below are fictional test data—not real products, prices or stock. Delivery availability must be confirmed on the actual CeX listing.</div>
 <section class="panel" aria-live="polite">
   <h2 style="font-size:1.1rem;margin:0">Results <span id="count" class="small" style="color:var(--muted)"></span></h2>
   <p id="status">Try a live CeX search, or tap “Try demo results” to test the filters and sorting.</p>
   <div id="results"></div>
 </section>
-<p class="small">Next build step: connect a reliable live product-data source, then verify online-order eligibility separately from store stock. Never treat store stock as proof that delivery is available.</p>
+<p class="small">Delivery filter note: the checkbox records your preference and gives you the right next step, but it does not yet automatically remove non-deliverable products from live results. A reliable live data source that exposes delivery eligibility is still needed for that.</p>
 </main>
 <script>
 const demo = [
@@ -84,7 +85,7 @@ function render(){
  const sort=$("sort").value;
  rows.sort(sort==="asc"?(a,b)=>a.price-b.price:sort==="desc"?(a,b)=>b.price-a.price:(a,b)=>a.name.localeCompare(b.name));
  $("count").textContent=`(${rows.length})`;
- $("status").textContent="Demo data only — these are fictional examples.";
+ $("status").textContent=$("deliveryOnly").checked?"Demo data only — delivery availability cannot be verified for fictional examples.":"Demo data only — these are fictional examples.";
  $("results").innerHTML=rows.length?rows.map(x=>`<article class="result"><h3>${x.name}</h3><div class="price">£${x.price.toFixed(2)}</div><span class="tag">${x.grade}</span><span class="tag">${x.online?"Demo: online stock":"Demo: store-only stock"}</span></article>`).join(""):'<p>No demo results match those filters. Try changing your search or price range.</p>';
 }
 $("searchLive").addEventListener("click",()=>{
@@ -94,7 +95,7 @@ $("searchLive").addEventListener("click",()=>{
  window.open(url,"_blank","noopener");
 });
 $("showDemo").addEventListener("click",()=>{demoVisible=true;render()});
-["query","minPrice","maxPrice","sort","onlineOnly"].forEach(id=>$(id).addEventListener("input",render));
+["query","minPrice","maxPrice","sort","onlineOnly","deliveryOnly"].forEach(id=>$(id).addEventListener("input",render));
 </script>
 </body>
 </html>

@@ -54,7 +54,7 @@ a{color:#f8d76c;font-weight:700}
   <label class="checkrow"><input type="checkbox" id="onlineOnly" checked> Prefer items marked in stock online</label>
   <label class="checkrow"><input type="checkbox" id="deliveryOnly"> I need home delivery available</label>
   <div class="actions">
-    <button id="searchLive">Search live products</button>
+    <button id="searchLive" type="button" onclick="searchLive()">Search live products</button>
     <button class="secondary" id="showDemo">Open CeX website ↗</button>
   </div>
 </section>
@@ -67,45 +67,58 @@ a{color:#f8d76c;font-weight:700}
 <p class="small">Delivery note: the catalogue search can report online stock, but it does not reliably prove home-delivery eligibility. The delivery checkbox only shows products marked as in stock online; check “Delivery Available” on the CeX product page before ordering.</p>
 </main>
 <script>
-const $=id=>document.getElementById(id);
-let liveRows=[];
-function render(){
- const q=$("query").value.trim().toLowerCase();
- const min=$("minPrice").value===""?0:Number($("minPrice").value);
- const max=$("maxPrice").value===""?Infinity:Number($("maxPrice").value);
- let rows=liveRows.filter(x=>x.name.toLowerCase().includes(q)&&x.price>=min&&x.price<=max&&(!$("onlineOnly").checked||x.online)&&(!$("deliveryOnly").checked||x.online));
- const sort=$("sort").value;
- rows.sort(sort==="asc"?(a,b)=>a.price-b.price:sort==="desc"?(a,b)=>b.price-a.price:(a,b)=>a.name.localeCompare(b.name));
- $("count").textContent=liveRows.length?("(" + rows.length + " shown)"):"";
- $("results").innerHTML=rows.length?rows.map(x=>'<article class="result"><h3><a href="'+x.url+'" target="_blank" rel="noopener">'+escapeHtml(x.name)+'</a></h3><div class="price">£'+x.price.toFixed(2)+'</div><span class="tag">'+escapeHtml(x.category||"CeX product")+'</span><span class="tag">'+(x.online?"In stock online":"Online stock unavailable/unknown")+'</span></article>').join(""):(liveRows.length?'<p>No live results match those filters. Try changing your search or price range.</p>':"");
- if(liveRows.length) $("status").textContent=$("deliveryOnly").checked?"Showing live products marked in stock online. This does not guarantee home delivery; confirm on each CeX product page.":"Live catalogue results. Confirm current price and delivery on CeX before ordering.";
+var liveRows = [];
+function byId(id){ return document.getElementById(id); }
+function escapeText(value){
+ return String(value).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 }
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));}
+function render(){
+ var query=byId("query").value.trim().toLowerCase();
+ var min=byId("minPrice").value===""?0:Number(byId("minPrice").value);
+ var max=byId("maxPrice").value===""?Infinity:Number(byId("maxPrice").value);
+ var rows=liveRows.filter(function(x){
+  return x.name.toLowerCase().indexOf(query)!==-1 && x.price>=min && x.price<=max &&
+   (!byId("onlineOnly").checked || x.online) && (!byId("deliveryOnly").checked || x.online);
+ });
+ var sort=byId("sort").value;
+ rows.sort(sort==="asc"?function(a,b){return a.price-b.price}:sort==="desc"?function(a,b){return b.price-a.price}:function(a,b){return a.name.localeCompare(b.name)});
+ byId("count").textContent=liveRows.length?"("+rows.length+" shown)":"";
+ byId("results").innerHTML=rows.length?rows.map(function(x){
+  return '<article class="result"><h3><a href="'+x.url+'" target="_blank" rel="noopener">'+escapeText(x.name)+'</a></h3><div class="price">£'+x.price.toFixed(2)+'</div><span class="tag">'+escapeText(x.category||"CeX product")+'</span><span class="tag">'+(x.online?"In stock online":"Online stock unavailable/unknown")+'</span></article>';
+ }).join(""):(liveRows.length?'<p>No live results match those filters. Try changing your search or price range.</p>':"");
+ if(liveRows.length) byId("status").textContent=byId("deliveryOnly").checked?"Showing items marked in stock online. This does not guarantee home delivery; check the CeX product page.":"Live catalogue results. Confirm price and delivery on CeX before ordering.";
+}
 async function searchLive(){
- const q=$("query").value.trim();
- if(!q){$("status").textContent="Enter a product name first.";return;}
- $("status").textContent="Searching the live CeX catalogue…";
- $("results").innerHTML="";
+ var q=byId("query").value.trim();
+ if(!q){byId("status").textContent="Enter a product name first.";return;}
+ byId("status").textContent="Button works — connecting to CeX catalogue…";
+ byId("results").innerHTML="";
  liveRows=[];
  try{
-  const endpoint="https://wss2.cex.uk.webuy.io/v3/boxes?q="+encodeURIComponent(q)+"&firstRecord=1&count=50&sortBy=relevance&sortOrder=desc";
-  const response=await fetch(endpoint,{headers:{"Accept":"application/json"}});
-  if(!response.ok) throw new Error("CeX catalogue returned HTTP "+response.status);
-  const data=await response.json();
-  const boxes=data?.response?.data?.boxes;
-  if(!Array.isArray(boxes)) throw new Error("Unexpected catalogue response");
-  liveRows=boxes.map(x=>({name:x.boxName||"Unnamed CeX product",price:Number(x.sellPrice),online:Number(x.outOfStock)!==1&&Number(x.outOfEcomStock)!==1&&Number(x.ecomQuantityOnHand||0)>0,category:x.categoryFriendlyName||x.categoryName||"",url:"https://uk.webuy.com/product-detail?id="+encodeURIComponent(x.boxId||"")})).filter(x=>Number.isFinite(x.price)&&x.price>=0);
+  var endpoint="https://wss2.cex.uk.webuy.io/v3/boxes?q="+encodeURIComponent(q)+"&firstRecord=1&count=50&sortBy=relevance&sortOrder=desc";
+  var response=await fetch(endpoint);
+  if(!response.ok) throw new Error("CeX catalogue HTTP "+response.status);
+  var data=await response.json();
+  var boxes=data && data.response && data.response.data && data.response.data.boxes;
+  if(!Array.isArray(boxes)) throw new Error("Unexpected response from catalogue");
+  liveRows=boxes.map(function(x){
+   return {name:x.boxName||"Unnamed product",price:Number(x.sellPrice),online:Number(x.outOfStock)!==1&&Number(x.outOfEcomStock)!==1&&Number(x.ecomQuantityOnHand||0)>0,category:x.categoryFriendlyName||x.categoryName||"",url:"https://uk.webuy.com/product-detail?id="+encodeURIComponent(x.boxId||"")};
+  }).filter(function(x){return Number.isFinite(x.price)&&x.price>=0});
   render();
-  if(!liveRows.length)$("status").textContent="The catalogue returned no usable products for that search.";
- }catch(err){
-  $("status").textContent="Live search could not connect from this page (CeX may block browser requests). You can still open the official CeX search below.";
-  $("results").innerHTML='<p><a href="https://uk.webuy.com/search?stext='+encodeURIComponent(q)+'" target="_blank" rel="noopener">Open CeX search for “'+escapeHtml(q)+'” ↗</a></p><p class="small">Technical detail: '+escapeHtml(err.message||"request failed")+'</p>';
+  if(!liveRows.length) byId("status").textContent="CeX replied, but no usable results were found.";
+ }catch(error){
+  byId("status").textContent="The button works, but the live catalogue request failed. Open the official CeX search instead.";
+  byId("results").innerHTML='<p><a href="https://uk.webuy.com/search?stext='+encodeURIComponent(q)+'" target="_blank" rel="noopener">Open CeX search for “'+escapeText(q)+'” ↗</a></p><p class="small">Reason: '+escapeText(error && error.message ? error.message : "request blocked")+'</p>';
  }
 }
-$("searchLive").addEventListener("click",searchLive);
-$("openCex").addEventListener("click",()=>{const q=$("query").value.trim();window.open("https://uk.webuy.com/search?stext="+encodeURIComponent(q),"_blank","noopener");});
-["minPrice","maxPrice","sort","onlineOnly","deliveryOnly"].forEach(id=>$(id).addEventListener("input",render));
-$("query").addEventListener("keydown",e=>{if(e.key==="Enter")searchLive();});
+function openCex(){
+ var q=byId("query").value.trim();
+ window.location.href="https://uk.webuy.com/search?stext="+encodeURIComponent(q);
+}
+document.addEventListener("DOMContentLoaded",function(){
+ ["minPrice","maxPrice","sort","onlineOnly","deliveryOnly"].forEach(function(id){byId(id).addEventListener("input",render)});
+ byId("query").addEventListener("keydown",function(event){if(event.key==="Enter")searchLive()});
+});
 </script>
 </body>
 </html>

@@ -91,7 +91,7 @@ $("searchLive").addEventListener("click",()=>{
  const q=$("query").value.trim();
  if(!q){$("status").textContent="Enter a product name first.";return;}
  const url="https://uk.webuy.com/search?st="+encodeURIComponent(q);
- window.open(url,"_blank","noopener");
+ window.location.href = url;
 });
 $("showDemo").addEventListener("click",()=>{demoVisible=true;render()});
 ["query","minPrice","maxPrice","sort","onlineOnly"].forEach(id=>$(id).addEventListener("input",render));

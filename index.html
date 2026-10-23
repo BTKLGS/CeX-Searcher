@@ -57,7 +57,7 @@ a{color:#f8d76c;font-weight:700}
     <button class="secondary" id="showDemo">Try demo results</button>
   </div>
 </section>
-<div class="note"><strong>Important:</strong> this is an early prototype. “Search on CeX UK” opens CeX's own search in a new tab. The demo listings below are fictional test data—not real products, prices or stock.</div>
+<div class="note"><strong>Important:</strong> this is an early prototype. “Search on CeX UK” opens CeX's own search. The demo listings below are fictional test data—not real products, prices or stock.</div>
 <section class="panel" aria-live="polite">
   <h2 style="font-size:1.1rem;margin:0">Results <span id="count" class="small" style="color:var(--muted)"></span></h2>
   <p id="status">Try a live CeX search, or tap “Try demo results” to test the filters and sorting.</p>
@@ -90,8 +90,8 @@ function render(){
 $("searchLive").addEventListener("click",()=>{
  const q=$("query").value.trim();
  if(!q){$("status").textContent="Enter a product name first.";return;}
- const url = "https://www.google.com/search?q=" + encodeURIComponent("site:uk.webuy.com " + q);
-window.location.href = url;
+ const url="https://uk.webuy.com/search?st="+encodeURIComponent(q);
+ window.open(url,"_blank","noopener");
 });
 $("showDemo").addEventListener("click",()=>{demoVisible=true;render()});
 ["query","minPrice","maxPrice","sort","onlineOnly"].forEach(id=>$(id).addEventListener("input",render));

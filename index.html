@@ -107,8 +107,8 @@ async function searchLive(){
   render();
   if(!liveRows.length) byId("status").textContent="CeX replied, but no usable results were found.";
  }catch(error){
-  byId("status").textContent="The button works, but the live catalogue request failed. Open the official CeX search instead.";
-  byId("results").innerHTML='<p><a href="https://uk.webuy.com/search?stext='+encodeURIComponent(q)+'" target="_blank" rel="noopener">Open CeX search for “'+escapeText(q)+'” ↗</a></p><p class="small">Reason: '+escapeText(error && error.message ? error.message : "request blocked")+'</p>';
+  byId("status").textContent="The button works, but this website cannot read CeX catalogue data directly. Use the official CeX search link below; we need a small proxy service for automatic filters.";
+  byId("results").innerHTML='<p><a href="https://uk.webuy.com/search?stext='+encodeURIComponent(q)+'" target="_blank" rel="noopener">Open CeX search for “'+escapeText(q)+'” ↗</a></p><p class="small">Browser error: '+escapeText(error && error.message ? error.message : "request blocked")+'.</p>';
  }
 }
 function openCex(){
